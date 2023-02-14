@@ -1,4 +1,4 @@
-# Pure WebGL Example
+# WebGL Planets
 
 ## Used techologies:
 
@@ -10,3 +10,6 @@
 
 ![](/Screenshot.png)
 
+## And also, heightmap from image!
+
+![](/Screenshot_1.png)

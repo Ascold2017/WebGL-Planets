@@ -1,12 +1,13 @@
 import { mat4 } from 'gl-matrix'
 import { Object3D } from './Core';
 const FS_SHADER = `void main() {
-  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  gl_FragColor = vec4(0, 1, 0, 1);
 }`
-const VS_SHADER = `attribute vec2 aVertexPosition;
+const VS_SHADER = `attribute vec3 aVertexPosition;
 uniform mat4 uMVMatrix;
+uniform mat4 uPMatrix;
 void main(void) {
-  gl_Position = uMVMatrix * vec4(aVertexPosition, 0.0, 1.0);
+  gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
 }`
 
 
@@ -15,9 +16,11 @@ export default class WebGL {
   private shaderProgram: WebGLProgram | null = null;
   private vertexPositionAttribute: number | null = null;
   private uMVMatrix: WebGLUniformLocation | null = null;
+  private uPMatrix: WebGLUniformLocation | null = null;
   private vertexBuffer: WebGLBuffer | null = null;
   private indexBuffer: WebGLBuffer | null = null;
-  
+  private projectionMatrix = mat4.identity(mat4.create())
+
   constructor(canvas: HTMLCanvasElement) {
     this.gl = canvas.getContext('webgl')!;
     // установка шейдеров 
@@ -26,12 +29,17 @@ export default class WebGL {
     this.initBuffers()
   }
 
+  setProjectionMatrix(projectionMatrix: mat4) {
+    this.projectionMatrix = projectionMatrix;
+  }
+
   drawFigure(data: Object3D) {
     this.gl.uniformMatrix4fv(this.uMVMatrix, false, data.mvMatrix);
+    this.gl.uniformMatrix4fv(this.uPMatrix, false, this.projectionMatrix);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(data.vertices), this.gl.STATIC_DRAW);
     this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data.indices), this.gl.STATIC_DRAW)
     // указываем, что каждая вершина имеет по 2 координаты (x, y)
-    this.gl.vertexAttribPointer(this.vertexPositionAttribute!, 2, this.gl.FLOAT, false, 0, 0);
+    this.gl.vertexAttribPointer(this.vertexPositionAttribute!, 3, this.gl.FLOAT, false, 0, 0);
     // отрисовка примитивов - линий          
     this.gl.drawElements(this.gl.LINES, data.indices.length, this.gl.UNSIGNED_SHORT, 0);
   }
@@ -60,7 +68,7 @@ export default class WebGL {
 
     // создания переменных uniform для передачи матриц в шейдер
     this.uMVMatrix = this.gl.getUniformLocation(this.shaderProgram, "uMVMatrix");
-    // this.ProjMatrix = this.gl.getUniformLocation(this.shaderProgram, "uPMatrix");
+    this.uPMatrix = this.gl.getUniformLocation(this.shaderProgram, "uPMatrix");
   }
 
   private getShader(shaderSrc: string, type: number) {
@@ -83,7 +91,7 @@ export default class WebGL {
     // установка буфера вершин
     this.vertexBuffer = this.gl.createBuffer()!;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-    
+
     this.indexBuffer = this.gl.createBuffer()!;
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
   }
